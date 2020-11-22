@@ -1,0 +1,157 @@
+---
+title: "Capstone Data"
+author: "Jans"
+date: "9/14/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+# Tidy Data
+
+```{r}
+NBA <- read_csv("NBA.csv")
+head(NBA)
+glimpse(NBA)
+```
+
+```{r}
+NBA_clean <- NBA %>% 
+  mutate(pctFG = replace_na(pctFG,
+                            replace = 0),
+         pctFT = replace_na(pctFT,
+                            replace = 0),
+         treb = replace_na(treb,
+                           replace = 0)) %>% 
+  select(-idTeam, 
+         -isB2B,
+         -slugLeague,
+         -isB2BFirst,
+         -isB2BSecond,
+         -locationGame,
+         -countDaysRestTeam,
+         -countDaysNextGameTeam,
+         -countDaysRestPlayer,
+         -countDaysNextGamePlayer,
+         -idPlayer,
+         -hasVideo) %>% 
+  dplyr::rename(Season = yearSeason,
+         Slug_Season = slugSeason,
+         Type_Season = typeSeason,
+         Date = dateGame,
+         ID_Game = idGame,
+         Number_Game_Team_Season = numberGameTeamSeason,
+         Team_Name = nameTeam,
+         Matchup = slugMatchup,
+         Slug_Team = slugTeam,
+         Slug_Opponent = slugOpponent,
+         Team_Winner = slugTeamWinner,
+         Team_Loser = slugTeamLoser,
+         Game_Outcome = outcomeGame,
+         Player_Name = namePlayer,
+         Player_Season = numberGamePlayerSeason,
+         Win = isWin,
+         Minutes = minutes,
+         Plus_Minus = plusminus,
+         Team_Season_Logo = urlTeamSeasonLogo,
+         Player_Stats = urlPlayerStats,
+         Player_Thumbnail = urlPlayerThumbnail,
+         Player_Headshot = urlPlayerHeadshot,
+         Player_Action_Photo = urlPlayerActionPhoto,
+         Player_Photo = urlPlayerPhoto)
+
+
+head(NBA_clean)
+```
+
+# Top NBA Player 
+
+```{r}
+NBA_TOP <- NBA_clean %>% 
+  filter(Season == 2020) %>% 
+  group_by(Player_Name) %>%
+  summarise(pctFG = mean(pctFG),
+            pctFG3 = mean(pctFG3),
+            pctFT = mean(pctFT),
+            pctFG2 = mean(pctFG2)) %>% 
+  arrange(desc(pctFG)) %>% 
+  head(10)
+
+NBA_TOP
+```
+
+```{r}
+theme_custom <- theme(legend.key = element_rect(fill="black"),
+           legend.background = element_rect(color="white", fill="#263238"),
+           plot.subtitle = element_text(size=6, color="white"),
+           panel.background = element_rect(fill="#dddddd"),
+           panel.border = element_rect(fill=NA),
+           panel.grid.minor.x = element_blank(),
+           panel.grid.major.x = element_blank(),
+           panel.grid.major.y = element_line(color="darkgrey", linetype=2),
+           panel.grid.minor.y = element_blank(),
+           plot.background = element_rect(fill="#000000"),
+           text = element_text(color="white"),
+           axis.text = element_text(color="white")
+           )
+```
+
+
+
+```{r}
+plot_top <- NBA_TOP %>% 
+  ggplot(aes(x = pctFG, 
+             y = reorder(Player_Name, pctFG),
+             text = glue("{Player_Name}
+                         Percentage FG: {round(pctFG*100, 2)}%"))) +
+  geom_col(fill = "dodgerblue4") +
+  labs( x = NULL,
+        y = NULL,
+        title = "NBA Top Player by Field Goal Percentage 2020") +
+  scale_x_continuous(labels = percent_format(accuracy = 1)) +
+  theme_custom
+
+plot_top
+```
+
+```{r}
+plot_top_inter <- ggplotly(plot_top, tooltip = "text")
+```
+
+# Field Goal Comparison
+
+```{r}
+NBA_Team <- NBA_clean %>% 
+  filter(Season == 2020) %>% 
+  group_by(Team_Name) %>%
+  summarise(pctFG2 = mean(pctFG2),
+            pctFG3 = mean(pctFG3))
+NBA_Team
+```
+
+
+```{r}
+plot_dist <- NBA_Team %>% 
+  ggplot(aes(pctFG2, 
+             pctFG3, 
+             col = Team_Name,
+             text = glue("{str_to_upper(Team_Name)}
+                         Two Point Field Goal Percentage: {round(pctFG2*100, 2)}%
+                         Three Point Field Goal Percentage: {round(pctFG3*100, 2)}%"))) +
+  geom_jitter() +
+  labs(y = "Three Point Field Goal Percentage",
+       x = "Two Point Field Goal Percentage",
+       title = "Field Goal Comparison 2020") +
+  scale_x_continuous(labels = percent_format(accuracy = 1)) +
+  scale_y_continuous(labels = percent_format(accuracy = 1)) +
+  theme_custom +
+  theme(legend.position = "none")
+```
+
+```{r}
+plot_dist_inter <- ggplotly(plot_dist, tooltip = "text")
+```
